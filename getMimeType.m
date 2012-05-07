@@ -1,5 +1,8 @@
 function mimetype = getMimeType(filename)
 % returns mimetype based on file extension
+%
+% I found it easier to just define these myself than rely on any
+% external library.
 [pathstr, name, ext] = fileparts(filename);
 
 c = containers.Map();

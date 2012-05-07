@@ -1,19 +1,18 @@
-function postid = blogpost(mfile,dryrun)
+function postid = blogpost(mfile, dryrun)
 % post the html output of publishing an m-file to matlab.cheme.cmu.edu
 % postid = blogpost('my_mfile.m')
 % 
-% you need to create a function called wordpress_credentials on your Matlab 
+% you need to create a function called blogCredentials on your Matlab 
 % path that returns the user and password of the user you will submit 
-% the post as:
-% function [user,password] = wordpress_credentials
+% the post as, and the server:
+% function [user, password, server] = blogCredentials()
 % user = 'your-user-name';
 % password = 'secretpassword';
+% server = 'http://matlab.cheme.cmu.edu/xmlrpc.php';
 % end function
 %
 % or you will be prompted for that information.
 % 
-% the title of the post is the name of the m-file.
-%
 % you can specify categories and tags in your m-file with this markup.
 % categories: category1, category2
 % tags: tag1, tag2
@@ -47,57 +46,57 @@ f = publish(mfile);
 NEWPOST = true;
 
 %% get title, categories and tags from the mfile
+text = fileread(mfile);
 
-fid = fopen(mfile,'r+');
-
-% get first line and see if it is ok for title
-line = fgetl(fid);
-if isempty(line)
-    title = mfile;
+%% check title
+% we take the first line if it starts with %% and has something in it.
+title_re = '^%% ([^\n]*)\r';
+tokens = regexp(text, title_re, 'tokens');
+if length(tokens) == 1
+    title = tokens{1}{1};
 else
-    if ~isempty(regexp(line,'^%%')) && length(line)>3
-        title = line(3:end);
+    title = mfile;
+end
+
+%% categories
+category_re = '% categories:\s*([^\n]*)\r';
+[tokens] = regexp(text,category_re, 'tokens');
+if length(tokens) > 1
+    % there may be zero
+    error('Too many categories matches found')
+elseif length(tokens) == 1
+    categories = regexp(tokens{1},',','split');
+    categories = categories{1};
+end
+
+%% tags
+tags_re = '% tags:\s*([^\n]*)\r';
+[tokens] = regexp(text,tags_re, 'tokens');
+if length(tokens) > 1
+    error('too many tags lines found')
+elseif length(tokens) == 1
+    tags = regexp(tokens{1},',','split');
+    tags = tags{1};
+end
+
+%% post_id
+tokens = regexp(text,'% post_id =\s*(\d*);.*\r','tokens');
+if length(tokens) > 1
+    error('Too many post_id lines found')
+elseif length(tokens) == 1
+    post_id = tokens{1}{1};
+    validid = validPostId(post_id);
+    if validid == true 
+        NEWPOST = false
     else
-        title = mfile;
+        %stored postid is not valid, it may have been deleted on the blog.
+        NEWPOST = true
     end
 end
-
-categories = {'uncategorized'};
-tags = {};
-
-while 1
-    tline = fgetl(fid);
-    if ~ischar(tline), break, end
-    
-    s = regexp(tline,'^% categories:(.*)','tokens');
-    if numel(s) > 0
-        categories = regexp(s{1},',','split');
-        categories = categories{1};
-    end
-    
-    s = regexp(tline,'^% tags:(.*)','tokens');
-    if numel(s) > 0
-        tags = regexp(s{1},',','split');
-        tags = tags{1};
-    end
-    
-    s = regexp(tline,'^% post_id =','once');
-    if ~isempty(s)
-        eval(tline(2:end)); %sets the post_id variable
-        validid = validPostId(post_id);
-        if validid
-            NEWPOST = false;
-        else
-            %stored postid is not valid, it may have been deleted on the blog.
-            NEWPOST = true;
-        end
-    end
-    
-end
-fclose(fid);
 
 %% check to make sure each category exists in the blog
 % wordpress silently drops categories that don't exist
+% add category if it does not exist.
 for i = 1:length(categories)
     category = strtrim(categories{i});
     exists = categoryExists(category);
@@ -129,7 +128,9 @@ while 1
     for i = 1:length(matches)
         m = regexp(matches{i},'<img.*src="(.*.[png|gif])".*>','tokens');
         imgfile = m{1}{1};
+        % upload new image, and get url
         url = newMediaObject(imgfile);
+        % replace the old link with the wordpress url
         line = strrep(line,imgfile,url);
     end
             

@@ -15,7 +15,6 @@ tooltip_text = tok{1}{1};
 text_with_tooltip = tok{1}{2};
 
 html = {...
-    '<html>'
     '<head>'
     	'<script src="http://cdn.jquerytools.org/1.2.6/full/jquery.tools.min.js"></script>'
 '<style>'
@@ -36,13 +35,8 @@ html = {...
 '}'
 '</style>'
 '</head>'
-'<div id="$tooltip_id$">'
-	'<a title="$tooltip_text$"/>$$</a>'
-'</div>'
-'<script>'
-'$("#demo").tooltip();'
-'</script>'
-'</html>'
+'<div id="$tooltip_id$"><a title="$tooltip_text$"/>$$</a></div>'
+'<script>$("#demo").tooltip();</script>'
 };
 
  % three things to replace:

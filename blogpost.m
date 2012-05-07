@@ -1,4 +1,4 @@
-function postid = blogpost(mfile, dryrun)
+function post_id = blogpost(mfile, dryrun)
 % post the html output of publishing an m-file to matlab.cheme.cmu.edu
 % postid = blogpost('my_mfile.m')
 % 
@@ -39,7 +39,7 @@ if ~strcmp(mfile(end-1:end),'.m')
 end
 
 %% make sure file has been published
-f = publish(mfile);
+publish(mfile);
 
 % assume this is a new post. this is changed when reading the mfile if an
 % old post_id is found
@@ -70,13 +70,15 @@ elseif length(tokens) == 1
 end
 
 %% tags
-tags_re = '% tags:\s*([^\n]*)\r';
+tags_re = '% tags:\s*([^\n]*)';
 [tokens] = regexp(text,tags_re, 'tokens');
 if length(tokens) > 1
     error('too many tags lines found')
 elseif length(tokens) == 1
-    tags = regexp(tokens{1},',','split');
+    tags = regexp(tokens{1}{1},',','split');
     tags = tags{1};
+elseif isempty(tokens)
+    tags = [];
 end
 
 %% post_id
@@ -87,10 +89,10 @@ elseif length(tokens) == 1
     post_id = tokens{1}{1};
     validid = validPostId(post_id);
     if validid == true 
-        NEWPOST = false
+        NEWPOST = false;
     else
         %stored postid is not valid, it may have been deleted on the blog.
-        NEWPOST = true
+        NEWPOST = true;
     end
 end
 
@@ -110,71 +112,62 @@ end
 % each image, get the new url to the image, and replace that in the html
 % code. We also look for special markups e.g. `postid: 650` that are
 % replaced by urls to those posts.
+
 CWD = pwd;
 cd('html')
 htmlfile = strrep(mfile,'.m','.html');
+htmltext = fileread(htmlfile);
 
-fid = fopen(htmlfile,'r');
-tmpfile = tempname;
-tid = fopen(tmpfile,'w');
+%% handle the Source
+% this gets mangled by the substitutions below, so we save it here, and put
+% it back later
+reg = '##### SOURCE BEGIN #####(.*)##### SOURCE END #####';
+[match] = regexp(htmltext,reg,'match');
+source_code = match{1};
 
-while 1
-    line = fgets(fid);
-    if line == -1
-        break
-    end
-%% check for image tags, upload images and replace src urls   
-   matches = regexp(line,'<img[^>]*>','match');
-    for i = 1:length(matches)
-        m = regexp(matches{i},'<img.*src="(.*.[png|gif])".*>','tokens');
-        imgfile = m{1}{1};
-        % upload new image, and get url
-        url = newMediaObject(imgfile);
-        % replace the old link with the wordpress url
-        line = strrep(line,imgfile,url);
-    end
-            
-    %% check for postid tags. We convert them to links
-    [tokens, matches] = regexp(line,':postid:`\s?([0-9]*)\s?`','tokens','match');
-    for i = 1:numel(matches)
-        postid = str2num(char(tokens{i}));
-        matched_text = char(matches{i});
-        post = getPost(postid);
-        url = post.get('link');
-        post_html = sprintf('<a href=%s> Post %i </a>',url,postid);
-        line = strrep(line, matched_text ,post_html);
-    end
-        
-    %% now check for download tags. upload file, and replace with links
-    [tokens matches] = regexp(line,':download:`\s?([a-zA-Z0-9\s\-_\.]*)\s?`','tokens','match');
-    for i = 1:numel(matches)
-        fname = strcat(['../', char(tokens{i})]); %assume fname is relative to one directory up
-        matched_text = char(matches{i});
-        url = newMediaObject(fname);
-        post_html = sprintf('<a href=%s> download %s </a>',url,char(tokens{i}));
-        line = strrep(line, matched_text, post_html);
-    end
-    
-    %% now check for tooltip tags and replace with html
-    [tokens matches] = regexp(line,':tooltip:`(.*)`','tokens','match');
-    for i=1:numel(matches)
-        datastring = char(tokens{i});
-        html = tooltip(datastring);
-        line = strrep(line, matches{i}, html);
-    end
+%% now handle images
+reg = ['<img .*?src="'... % up to src="
+    '([^"]*)'...     % grab the src filename
+    '".*?>'];         % the rest of the link
+[tokens] = regexp(htmltext,reg,'tokens');
 
-    [tokens matches] = regexp(line,':command:`(.*)`','tokens','match');
-    for i=1:numel(matches)
-        datastring = char(tokens{i});
-        html = command(datastring);
-        line = strrep(line, matches{i}, html);
-    end
-    
-    % write the line to the tmpfile
-    fwrite(tid,line);
+for i=1:length(tokens)
+    %matches{i}
+    imgfile = tokens{i}{1};
+    % upload new image, and get url
+    url = newMediaObject(imgfile);
+    % replace the old link with the wordpress url
+    htmltext = strrep(htmltext,imgfile,url);
 end
 
-fclose(fid);
+%% Now handle :cmd:`datastrings`
+reg = ':([^:]*):`([^`]*)`';
+[tokens matches] = regexp(htmltext,reg,'tokens','match');
+
+for i = 1:length(tokens)
+    directive = tokens{i}{1};
+    datastring = tokens{i}{2};
+    %sprintf('directive = %s', directive)
+    %sprintf('datastring = %s', datastring)
+    
+    % construct string of command to evaluate wp_directive(datastring)
+    % all the wp_cmd functions are in ./extensions
+    runcmd = sprintf('wp_%s(''%s'')', directive, datastring);
+    html = eval(runcmd);
+    
+    % now replace the matched text with the html output
+    htmltext = strrep(htmltext, matches{i}, html);
+    % now
+end
+
+%% finally, put unmodified source code back in.
+reg = '##### SOURCE BEGIN #####(.*)##### SOURCE END #####';
+[match] = regexp(htmltext,reg,'match');
+htmltext = strrep(htmltext, match{1}, source_code);
+
+tmpfile = tempname;
+tid = fopen(tmpfile,'w');
+fwrite(tid,htmltext);
 fclose(tid);
 
 cd(CWD) % get back to where we started from
@@ -195,12 +188,7 @@ client = XmlRpcClient(server,0);
 post = java.util.HashMap();
 post.put('title',title);
 
-% read in the file to a string
-fid = fopen(tmpfile);
-html = fread(fid,inf,'*char')';
-fclose(fid);
-
-post.put('description',html);
+post.put('description',htmltext);
 if ~isempty(categories)
     post.put('categories',categories);
 end
@@ -212,6 +200,7 @@ end
 %% finally the posting action
 if dryrun
     web(tmpfile)
+    edit(tmpfile)
     pause(5)
 else
     if NEWPOST == true

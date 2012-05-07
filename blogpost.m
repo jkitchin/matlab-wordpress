@@ -25,6 +25,9 @@ function post_id = blogpost(mfile, dryrun)
 % path should be relative to your m-file. Note that this function *assumes*
 % you are publishing the m-file from the directory where the m-file is.
 %
+% you can have general markup of :directive:`datastring` as long as
+% you make a function called wp_directive that handles datastring.
+%
 % this function will add a comment to the end of your m-file containing the
 % postid that was published. If you repost the m-file later, and the postid
 % is still valid, then the existing post will just be updated.

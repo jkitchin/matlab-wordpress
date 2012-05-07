@@ -141,6 +141,21 @@ for i=1:length(tokens)
     htmltext = strrep(htmltext,imgfile,url);
 end
 
+%% handle any literal text
+% we have to find <pre>text</pre>
+% we will find and replace these with a UUID, store that UUID in a
+% Containers.map so we can substitute the text back in later.
+reg = '<pre>([^<]*)</pre>';
+[tokens matches] = regexp(htmltext,reg,'tokens','match')
+literal_map = containers.Map();
+for i=1:length(matches)
+    uuid = char(java.util.UUID.randomUUID);
+    literal_map(uuid) = matches{i}
+    
+    % now replace matches{i} with uuid
+    htmltext = strrep(htmltext, matches{i}, uuid);
+end
+
 %% Now handle :cmd:`datastrings`
 reg = ':([^:]*):`([^`]*)`';
 [tokens matches] = regexp(htmltext,reg,'tokens','match');
@@ -159,6 +174,12 @@ for i = 1:length(tokens)
     % now replace the matched text with the html output
     htmltext = strrep(htmltext, matches{i}, html);
     % now
+end
+
+%% put literal text back in
+keys = literal_map.keys();
+for i=1:length(keys)
+    htmltext = strrep(htmltext,keys{i}, literal_map(keys{i}));
 end
 
 %% finally, put unmodified source code back in.

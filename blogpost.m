@@ -116,6 +116,7 @@ end
 CWD = pwd;
 cd('html')
 htmlfile = strrep(mfile,'.m','.html');
+
 htmltext = fileread(htmlfile);
 
 %% handle the Source

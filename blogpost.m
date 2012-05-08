@@ -49,8 +49,22 @@ if ~strcmp(mfile(end-1:end),'.m')
     mfile  = [mfile '.m'];
 end
 
-%% make sure file has been published
-htmlfile = publish(mfile);
+%% make sure file has been published if mfile is newer than html file
+% files are published in html
+htmlfile = fullfile(pwd, 'html', strrep(mfile,'.m','.html'));
+if exist(htmlfile,'file')
+    h = dir(htmlfile);
+    m = dir(mfile);
+    if m.datenum > h.datenum
+        % we should publish to get latest output
+        htmlfile = publish(mfile);
+    end
+else
+    % file doesn't exist, so we publish it. htmlfile will be an absolute
+    % path
+    htmlfile = publish(mfile);
+end
+
 [publish_location,~,~] = fileparts(htmlfile);
 
 % assume this is a new post. this is changed when reading the mfile if an
@@ -130,7 +144,7 @@ htmltext = fileread(htmlfile);
 %% handle the Source
 % this gets mangled by the substitutions below, so we save it here, replace
 % it so nothing is changed, and put it back later
-reg = '<!--.##### SOURCE BEGIN #####(.*)##### SOURCE END #####.-->';
+reg = '##### SOURCE BEGIN #####(.*)##### SOURCE END #####';
 [match] = regexp(htmltext,reg,'match');
 source_code = match{1};
 
@@ -147,7 +161,12 @@ for i=1:length(tokens)
     %matches{i}
     imgfile = tokens{i}{1};
     % upload new image, and get url
-    url = newMediaObject(fullfile(publish_location,imgfile));
+    if ~dryrun
+        url = newMediaObject(fullfile(publish_location,imgfile));
+    else
+        % figure location for a dryrun
+        url = fullfile(publish_location,imgfile);
+    end
     % replace the old link with the wordpress url
     htmltext = strrep(htmltext,imgfile,url);
 end
@@ -157,7 +176,7 @@ end
 % we will find and replace these with a UUID, store that UUID in a
 % Containers.map so we can substitute the text back in later.
 reg = '<pre>([^<]*)</pre>';
-[tokens matches] = regexp(htmltext,reg,'tokens','match');
+[matches] = regexp(htmltext, reg, 'match');
 literal_map = containers.Map();
 for i=1:length(matches)
     uuid = char(java.util.UUID.randomUUID);
@@ -174,8 +193,6 @@ reg = ':([^:]*):`([^`]*)`';
 for i = 1:length(tokens)
     directive = tokens{i}{1};
     datastring = tokens{i}{2};
-    %sprintf('directive = %s', directive)
-    %sprintf('datastring = %s', datastring)
 
     % construct string of command to evaluate wp_directive(datastring)
     % all the wp_cmd functions are in ./extensions

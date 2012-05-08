@@ -1,9 +1,9 @@
 function post_id = blogpost(mfile, dryrun)
 % post the html output of publishing an m-file to matlab.cheme.cmu.edu
 % postid = blogpost('my_mfile.m')
-% 
-% you need to create a function called blogCredentials on your Matlab 
-% path that returns the user and password of the user you will submit 
+%
+% you need to create a function called blogCredentials on your Matlab
+% path that returns the user and password of the user you will submit
 % the post as, and the server:
 % function [user, password, server] = blogCredentials()
 % user = 'your-user-name';
@@ -12,13 +12,13 @@ function post_id = blogpost(mfile, dryrun)
 % end function
 %
 % or you will be prompted for that information.
-% 
+%
 % you can specify categories and tags in your m-file with this markup.
 % categories: category1, category2
 % tags: tag1, tag2
 %
 % you can refer to other posts with this syntax: `:postid: 456`. This will
-% be converted to a link in the published post (but not in the published 
+% be converted to a link in the published post (but not in the published
 % matlab).
 %
 % you can add a file to be downloaded with `:download: path-to-file`. The
@@ -91,7 +91,7 @@ if length(tokens) > 1
 elseif length(tokens) == 1
     post_id = tokens{1}{1};
     validid = validPostId(post_id);
-    if validid == true 
+    if validid == true
         NEWPOST = false;
     else
         %stored postid is not valid, it may have been deleted on the blog.
@@ -149,12 +149,12 @@ end
 % we will find and replace these with a UUID, store that UUID in a
 % Containers.map so we can substitute the text back in later.
 reg = '<pre>([^<]*)</pre>';
-[tokens matches] = regexp(htmltext,reg,'tokens','match')
+[tokens matches] = regexp(htmltext,reg,'tokens','match');
 literal_map = containers.Map();
 for i=1:length(matches)
     uuid = char(java.util.UUID.randomUUID);
-    literal_map(uuid) = matches{i}
-    
+    literal_map(uuid) = matches{i};
+
     % now replace matches{i} with uuid
     htmltext = strrep(htmltext, matches{i}, uuid);
 end
@@ -168,12 +168,12 @@ for i = 1:length(tokens)
     datastring = tokens{i}{2};
     %sprintf('directive = %s', directive)
     %sprintf('datastring = %s', datastring)
-    
+
     % construct string of command to evaluate wp_directive(datastring)
     % all the wp_cmd functions are in ./extensions
     runcmd = sprintf('wp_%s(''%s'')', directive, datastring);
     html = eval(runcmd);
-    
+
     % now replace the matched text with the html output
     htmltext = strrep(htmltext, matches{i}, html);
     % now
@@ -221,7 +221,7 @@ end
 if ~isempty(tags)
     post.put('mt_keywords',tags);
 end
- 
+
 %% finally the posting action
 if dryrun
     web(tmpfile)
@@ -230,7 +230,7 @@ if dryrun
 else
     if NEWPOST == true
         post_id = client.invoke('metaWeblog.newPost',{1,user,password,post,true});
-        
+
         p = getPost(post_id);
         fid = fopen(mfile,'a+');
         fprintf(fid,'\r%% post_id = %s; %%delete this line to force new post;\r',char(post_id));

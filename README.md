@@ -23,6 +23,7 @@ INSTALLATION
 ============
 
 Get the code with one of these options.
+
 1. with git:
 
   git clone git@github.com:johnkitchin/matlab-wordpress.git

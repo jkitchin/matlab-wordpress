@@ -1,6 +1,6 @@
 function bool = validPostId(postid)
 % find out if the post id is valid. It may not be, if the post has been
-% deleted. 
+% deleted.
 
 %% now we get credentials and the client
 if exist('blogCredentials','file') == 2
@@ -8,6 +8,7 @@ if exist('blogCredentials','file') == 2
 else
     user = input('Enter your username: ','s');
     password = passwordUI();
+    server = input('Enter blog server: ', 's');
 end
 
 client = redstone.xmlrpc.XmlRpcClient(server,0);

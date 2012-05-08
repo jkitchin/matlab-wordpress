@@ -1,8 +1,16 @@
 function category_id = newCategory(category,parent_id,description)
 % create a new category in matlab blog
-[user,password,server] = blogCredentials();
+%% now we get credentials and the client
+if exist('blogCredentials','file') == 2
+    [user,password, server] = blogCredentials();
+else
+    user = input('Enter your username: ','s');
+    password = passwordUI();
+    server = input('Enter blog server: ', 's');
+end
+
 client = redstone.xmlrpc.XmlRpcClient(server,0);
- 
+
 if nargin == 1
     parent_id = 0;
 end

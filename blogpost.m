@@ -1,6 +1,11 @@
-function post_id = blogpost(mfile, dryrun)
+function post_id = blogpost(mfile, dryrun, verbose)
 % post the html output of publishing an m-file to matlab.cheme.cmu.edu
 % postid = blogpost('my_mfile.m')
+%
+% if dryrun is true, no post is run, and the local post-processed html i
+% opened in a browser.
+%
+% if verbose is true, there is more output (not supported yet).
 %
 % you need to create a function called blogCredentials on your Matlab
 % path that returns the user and password of the user you will submit
@@ -25,16 +30,19 @@ function post_id = blogpost(mfile, dryrun)
 % path should be relative to your m-file. Note that this function *assumes*
 % you are publishing the m-file from the directory where the m-file is.
 %
-% you can have general markup of :directive:`datastring` as long as
-% you make a function called wp_directive that handles datastring.
+% you can have general markup of :directive:`datastring` as long as you
+% make a function called wp_directive that handles datastring and returns
+% the text it should be replaced with.
 %
 % this function will add a comment to the end of your m-file containing the
 % postid that was published. If you repost the m-file later, and the postid
 % is still valid, then the existing post will just be updated.
+
 if nargin == 1
     dryrun = false;
-else
-    dryrun = true;
+    verbose = false;
+elseif nargin == 2
+    verbose = false;
 end
 
 if ~strcmp(mfile(end-1:end),'.m')
@@ -42,7 +50,8 @@ if ~strcmp(mfile(end-1:end),'.m')
 end
 
 %% make sure file has been published
-publish(mfile);
+htmlfile = publish(mfile);
+[publish_location,~,~] = fileparts(htmlfile);
 
 % assume this is a new post. this is changed when reading the mfile if an
 % old post_id is found
@@ -116,16 +125,12 @@ end
 % code. We also look for special markups e.g. `postid: 650` that are
 % replaced by urls to those posts.
 
-CWD = pwd;
-cd('html')
-htmlfile = strrep(mfile,'.m','.html');
-
 htmltext = fileread(htmlfile);
 
 %% handle the Source
 % this gets mangled by the substitutions below, so we save it here, replace
 % it so nothing is changed, and put it back later
-reg = '##### SOURCE BEGIN #####(.*)##### SOURCE END #####';
+reg = '<!--.##### SOURCE BEGIN #####(.*)##### SOURCE END #####.-->';
 [match] = regexp(htmltext,reg,'match');
 source_code = match{1};
 
@@ -142,7 +147,7 @@ for i=1:length(tokens)
     %matches{i}
     imgfile = tokens{i}{1};
     % upload new image, and get url
-    url = newMediaObject(imgfile);
+    url = newMediaObject(fullfile(publish_location,imgfile));
     % replace the old link with the wordpress url
     htmltext = strrep(htmltext,imgfile,url);
 end
@@ -189,14 +194,12 @@ for i=1:length(keys)
 end
 
 %% finally, put unmodified source code back in.
-htmltext = strrep(htmltext, uuid_source_code, source_code);
+htmltext = strrep(htmltext, uuid_source_code, [' ' source_code ' ']);
 
-tmpfile = tempname;
+tmpfile = strcat(tempname,'.html');
 tid = fopen(tmpfile,'w');
 fwrite(tid,htmltext);
 fclose(tid);
-
-cd(CWD) % get back to where we started from
 
 %% now we get credentials and the client
 if exist('blogCredentials','file') == 2

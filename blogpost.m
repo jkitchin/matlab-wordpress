@@ -123,11 +123,14 @@ htmlfile = strrep(mfile,'.m','.html');
 htmltext = fileread(htmlfile);
 
 %% handle the Source
-% this gets mangled by the substitutions below, so we save it here, and put
-% it back later
+% this gets mangled by the substitutions below, so we save it here, replace
+% it so nothing is changed, and put it back later
 reg = '##### SOURCE BEGIN #####(.*)##### SOURCE END #####';
 [match] = regexp(htmltext,reg,'match');
 source_code = match{1};
+
+uuid_source_code = char(java.util.UUID.randomUUID);
+htmltext = strrep(htmltext, source_code, uuid_source_code);
 
 %% now handle images
 reg = ['<img .*?src="'... % up to src="
@@ -186,9 +189,7 @@ for i=1:length(keys)
 end
 
 %% finally, put unmodified source code back in.
-reg = '##### SOURCE BEGIN #####(.*)##### SOURCE END #####';
-[match] = regexp(htmltext,reg,'match');
-htmltext = strrep(htmltext, match{1}, source_code);
+htmltext = strrep(htmltext, uuid_source_code, source_code);
 
 tmpfile = tempname;
 tid = fopen(tmpfile,'w');

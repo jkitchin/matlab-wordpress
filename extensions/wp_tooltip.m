@@ -24,7 +24,5 @@ UUID = char(java.util.UUID.randomUUID);
 html = strrep(html,'$tooltip_id$',UUID);
 html = strrep(html,'$tooltip_text$', tooltip_text);
 html = strrep(html,'$$', text_with_tooltip);
-
-sprintf('"%s"',text_with_tooltip)
  
 end

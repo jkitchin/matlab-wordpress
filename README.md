@@ -36,5 +36,5 @@ Now, make sure to add the directory formed in 1 or 2 to your Matlab path.
 
 You will need some code like this in your startup.m file to put the java files on your javaclasspath:
 
-javaclasspath({fullfile(MATLABROOT,'internal/matlab-wordpress/jwordpress-0.4.jar'),...
+  javaclasspath({fullfile(MATLABROOT,'internal/matlab-wordpress/jwordpress-0.4.jar'),...
     fullfile(MATLABROOT,'internal/matlab-wordpress/xmlrpc-client-1.1.1.jar')});

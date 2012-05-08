@@ -39,3 +39,26 @@ You will need some code like this in your startup.m file to put the java files o
 
     javaclasspath({fullfile(MATLABROOT,'internal/matlab-wordpress/jwordpress-0.4.jar'),...
         fullfile(MATLABROOT,'internal/matlab-wordpress/xmlrpc-client-1.1.1.jar')});
+
+Usage
+=====
+
+You prepare your blogpost in the editor of your choice as a valid m-file. I frequently publish to html to preview how it will look. When you are ready to post, at the matlab command prompt, type:
+
+    blogpost mfile.m
+
+You will be prompted for the username, password and server to post to. To avoid this, create an m-file on your Matlab path called blogCredentials.m with these contents:
+
+    function [user,password,server] = blogCredentials
+    % returns username and password for matlab blog
+
+    user = 'your-blog-login';
+    password = 'your-blog-password';
+    server = 'http://your-blog/xmlrpc.php';
+
+In your Wordpress blog, you will have to enable XML-RPC (Enable the WordPress, Movable Type, MetaWeblog and Blogger XML-RPC publishing protocols). This is under Settings -> Writing -> Remote Publishing.
+
+Example blog
+============
+
+You can see an example of this package used at http://matlab.cheme.cmu.edu.

@@ -24,9 +24,11 @@ INSTALLATION
 
 Get the code with one of these options.
 1. with git:
+
   git clone git@github.com:johnkitchin/matlab-wordpress.git
 
 2. as a zip file:
+
   wget -O wordpress.zip https://github.com/johnkitchin/matlab-wordpress/zipball/master
   unzip wordpress.zip
 

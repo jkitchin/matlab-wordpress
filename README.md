@@ -26,11 +26,11 @@ Get the code with one of these options.
 
 1. with git:
 
-        git clone git@github.com:johnkitchin/matlab-wordpress.git
+        git clone git@github.com:jkitchin/matlab-wordpress.git
 
 2. as a zip file:
 
-        wget -O wordpress.zip https://github.com/johnkitchin/matlab-wordpress/zipball/master
+        wget -O wordpress.zip https://github.com/jkitchin/matlab-wordpress/zipball/master
         unzip wordpress.zip
 
 Now, make sure to add the directory formed in 1 or 2 to your Matlab path.

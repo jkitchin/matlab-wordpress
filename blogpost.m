@@ -85,7 +85,7 @@ else
 end
 
 %% categories
-category_re = '% categories:\s*([^\n]*)\r';
+category_re = '% categories:\s*([^\n]*)';
 [tokens] = regexp(text,category_re, 'tokens');
 if length(tokens) > 1
     % there may be zero
@@ -125,14 +125,17 @@ end
 %% check to make sure each category exists in the blog
 % wordpress silently drops categories that don't exist
 % add category if it does not exist.
-for i = 1:length(categories)
-    category = strtrim(categories{i});
-    exists = categoryExists(category);
-    if ~exists
-        newCategory(category);
+if ~exist('categories','var')
+    categories = {}
+else
+    for i = 1:length(categories)
+        category = strtrim(categories{i});
+        exists = categoryExists(category);
+        if ~exists
+            newCategory(category);
+        end
     end
 end
-
 %% process html
 % now we get the html and process it looking for images. we need to upload
 % each image, get the new url to the image, and replace that in the html
